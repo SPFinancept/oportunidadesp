@@ -13,6 +13,10 @@
       box-sizing: border-box;
     }
 
+    * {
+      box-sizing: inherit;
+    }
+
     #search-box {
       background: white;
       padding: 10px;
@@ -22,6 +26,7 @@
       flex-wrap: wrap;
       justify-content: center;
       width: 100%;
+      max-width: 100%;
       z-index: 1001;
     }
 
@@ -31,6 +36,8 @@
       font-size: 1.1rem;
       border: 1px solid #ccc;
       border-radius: 6px;
+      width: 100%;
+      max-width: 400px;
     }
 
     #search-box button {
@@ -42,7 +49,7 @@
     }
 
     #map {
-      height: calc(100vh - 70px); /* Ajuste conforme altura do search-box */
+      height: calc(100vh - 70px); /* altura da barra de busca */
       width: 100%;
       display: none;
     }
@@ -69,7 +76,7 @@
     }
 
     #loading p {
-      font-size: 2rem;
+      font-size: 1.8rem;
       font-weight: bold;
       margin-top: 20px;
     }
@@ -97,15 +104,15 @@
     }
 
     #modalContent p {
-      font-size: 1.4rem;
+      font-size: 1.2rem;
       margin-bottom: 20px;
     }
 
     #modalContent button {
-      font-size: 1.3rem;
-      padding: 14px 20px;
+      font-size: 1rem;
+      padding: 12px 20px;
       margin: 10px;
-      width: 150px;
+      width: 140px;
       border-radius: 8px;
       cursor: pointer;
     }
@@ -113,33 +120,34 @@
     @media (max-width: 480px) {
       #search-box input[type="text"],
       #search-box button {
-        font-size: 1.2rem;
-        padding: 14px;
+        font-size: 1rem;
+        padding: 10px;
       }
 
       #loading p {
-        font-size: 2.2rem;
+        font-size: 1.4rem;
       }
 
       #modalContent p {
-        font-size: 1.6rem;
+        font-size: 1.2rem;
       }
 
       #modalContent button {
-        font-size: 1.4rem;
-        padding: 16px;
+        font-size: 1rem;
+        padding: 12px;
         width: 100%;
       }
     }
 
+    /* Controles do mapa: reduzir zoom e direção em 25% */
     .gm-control-active,
     .gm-fullscreen-control,
-    .gm-svpc,
-    .gmnoprint[controlwidth] {
-      transform: scale(0.5);
+    .gm-bundled-control {
+      transform: scale(0.75);
       transform-origin: bottom right;
     }
 
+    /* Remover botão de localização */
     button[title="Mostrar sua localização"] {
       display: none !important;
     }
