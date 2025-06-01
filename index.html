@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Mapa Interativo</title>
   <style>
     html, body {
@@ -10,29 +10,19 @@
       padding: 0;
       height: 100%;
       font-family: Arial, sans-serif;
-    }
-
-    #map {
-      height: 100%;
-      width: 100%;
-      display: none;
+      box-sizing: border-box;
     }
 
     #search-box {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1001;
       background: white;
       padding: 10px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      border-radius: 10px;
+      border-radius: 0 0 10px 10px;
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      width: 90%;
-      max-width: 500px;
+      width: 100%;
+      z-index: 1001;
     }
 
     #search-box input[type="text"] {
@@ -49,6 +39,12 @@
       margin-left: 6px;
       border-radius: 6px;
       cursor: pointer;
+    }
+
+    #map {
+      height: calc(100vh - 70px); /* Ajuste conforme altura do search-box */
+      width: 100%;
+      display: none;
     }
 
     #loading {
@@ -136,15 +132,14 @@
       }
     }
 
-    /* Reduzir o tamanho dos botões de navegação do Google Maps */
     .gm-control-active,
+    .gm-fullscreen-control,
     .gm-svpc,
-    .gmnoprint[controlwidth] > div {
+    .gmnoprint[controlwidth] {
       transform: scale(0.5);
       transform-origin: bottom right;
     }
 
-    /* Ocultar botão de localização atual (caso presente) */
     button[title="Mostrar sua localização"] {
       display: none !important;
     }
@@ -172,7 +167,7 @@
   </div>
 
   <script>
-    let map, marker, geocoder;
+    let map, geocoder;
     let pendingAddress = "", pendingLink = "";
 
     function initMap() {
@@ -213,9 +208,8 @@
       map.addListener("click", (e) => {
         const lat = e.latLng.lat();
         const lng = e.latLng.lng();
-        const clickedLocation = { lat, lng };
 
-        setMarker(clickedLocation);
+        const clickedLocation = { lat, lng };
 
         geocoder.geocode({ location: clickedLocation }, (results, status) => {
           if (status === "OK" && results[0]) {
@@ -246,16 +240,10 @@
           const location = results[0].geometry.location;
           map.setCenter(location);
           map.setZoom(20);
-          setMarker({ lat: location.lat(), lng: location.lng() });
         } else {
           alert("Endereço não encontrado.");
         }
       });
-    }
-
-    function setMarker(location) {
-      if (marker) marker.setMap(null);
-      marker = new google.maps.Marker({ position: location, map: map });
     }
 
     function redirectToForm(address, link) {
@@ -281,7 +269,6 @@
     window.initMap = initMap;
   </script>
 
-  <!-- Google Maps API -->
   <script
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB_a0uSA8vj0JNKyci4RIrc12z0lNU_f4w&libraries=places&callback=initMap"
     async defer>
