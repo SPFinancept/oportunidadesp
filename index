@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapa Interativo</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+      display: none;
+    }
+
+    #search-box {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1001;
+      background: white;
+      padding: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      border-radius: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 90%;
+      max-width: 500px;
+    }
+
+    #search-box input[type="text"] {
+      flex: 1 1 200px;
+      padding: 10px;
+      font-size: 1rem;
+      min-width: 0;
+      margin-bottom: 6px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    #search-box button {
+      padding: 10px 14px;
+      font-size: 1rem;
+      margin-left: 6px;
+      margin-bottom: 6px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #loading {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      flex-direction: column;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #loading p {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+
+    #confirmationModal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.6);
+    }
+
+    #modalContent {
+      background-color: #fff;
+      margin: 40% auto;
+      padding: 25px;
+      width: 90%;
+      max-width: 420px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    #modalContent p {
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+    }
+
+    #modalContent button {
+      font-size: 1.1rem;
+      padding: 12px 18px;
+      margin: 10px;
+      width: 120px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 480px) {
+      #modalContent {
+        margin-top: 50%;
+      }
+
+      #modalContent p {
+        font-size: 1.4rem;
+      }
+
+      #modalContent button {
+        font-size: 1.2rem;
+        padding: 14px 20px;
+        width: 140px;
+      }
+
+      #loading p {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <img src="https://i.gifer.com/ZZ5H.gif" alt="Carregando..." width="100" height="100" />
+    <p>Buscando sua localização. Aguarde...</p>
+  </div>
+
+  <div id="search-box">
+    <input type="text" id="addressInput" placeholder="Digite um endereço" />
+    <button onclick="geocodeAddress()">Buscar</button>
+  </div>
+
+  <div id="map"></div>
+
+  <div id="confirmationModal">
+    <div id="modalContent">
+      <p id="modalText"></p>
+      <button id="confirmBtn">Sim</button>
+      <button onclick="closeModal()">Não</button>
+    </div>
+  </div>
+
+  <script>
+    let map, marker, geocoder;
+    let pendingAddress = "", pendingLink = "";
+
+    function initMap() {
+      const defaultLocation = { lat: -23.5505, lng: -46.6333 };
+
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: defaultLocation,
+        zoom: 18,
+        mapTypeId: 'satellite',
+      });
+
+      geocoder = new google.maps.Geocoder();
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const currentLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+            map.setCenter(currentLocation);
+            map.setZoom(20);
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("map").style.display = "block";
+          },
+          () => {
+            alert("Não foi possível acessar sua localização.");
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("map").style.display = "block";
+          }
+        );
+      } else {
+        alert("Seu navegador não suporta geolocalização.");
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("map").style.display = "block";
+      }
+
+      map.addListener("click", (e) => {
+        const lat = e.latLng.lat();
+        const lng = e.latLng.lng();
+        const clickedLocation = { lat, lng };
+
+        setMarker(clickedLocation);
+
+        geocoder.geocode({ location: clickedLocation }, (results, status) => {
+          if (status === "OK" && results[0]) {
+            const address = results[0].formatted_address;
+            const mapsLink = `https://www.google.com/maps?q=${lat},${lng}`;
+            pendingAddress = address;
+            pendingLink = mapsLink;
+
+            const text = `
+              <strong>Endereço:</strong><br>${address}<br>
+              <strong>Coordenadas:</strong><br>${lat.toFixed(6)}, ${lng.toFixed(6)}<br><br>
+              Deseja continuar para o formulário com essas informações?
+            `;
+            showModal(text);
+          } else {
+            alert("Não foi possível obter o endereço.");
+          }
+        });
+      });
+    }
+
+    function geocodeAddress() {
+      const address = document.getElementById("addressInput").value;
+      if (!address) return;
+
+      geocoder.geocode({ address }, (results, status) => {
+        if (status === "OK" && results[0]) {
+          const location = results[0].geometry.location;
+          map.setCenter(location);
+          map.setZoom(20);
+          setMarker({ lat: location.lat(), lng: location.lng() });
+        } else {
+          alert("Endereço não encontrado.");
+        }
+      });
+    }
+
+    function setMarker(location) {
+      if (marker) marker.setMap(null);
+      marker = new google.maps.Marker({ position: location, map: map });
+    }
+
+    function redirectToForm(address, link) {
+      const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSdDeJzlacQs4YQLyGtvl-3RZk7YCuabs3AK59b6po18yD2eNQ/viewform";
+      const url = `${formUrl}?entry.685560023=${encodeURIComponent(address)}&entry.1482294369=${encodeURIComponent(link)}`;
+      window.open(url, "_blank");
+    }
+
+    function showModal(text) {
+      document.getElementById("modalText").innerHTML = text;
+      document.getElementById("confirmationModal").style.display = "block";
+    }
+
+    function closeModal() {
+      document.getElementById("confirmationModal").style.display = "none";
+    }
+
+    document.getElementById("confirmBtn").onclick = function () {
+      closeModal();
+      redirectToForm(pendingAddress, pendingLink);
+    };
+
+    window.initMap = initMap;
+  </script>
+
+  <!-- Google Maps API -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB_a0uSA8vj0JNKyci4RIrc12z0lNU_f4w&libraries=places&callback=initMap"
+    async defer>
+  </script>
+</body>
+</html>
