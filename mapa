@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
   <meta charset="UTF-8" />
   <title>Mapa Interativo</title>
@@ -10,6 +10,34 @@
       padding: 0;
       font-family: Arial, sans-serif;
     }
+
+    #map {
+      height: 100%;
+      width: 100%;
+      display: none;
+    }
+
+    #search-box {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1001;
+      background: white;
+      padding: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      border-radius: 8px;
+    }
+
+    #search-box input[type="text"] {
+      padding: 6px;
+      width: 250px;
+    }
+
+    #search-box button {
+      padding: 6px 10px;
+    }
+
     #loading {
       position: absolute;
       top: 0;
@@ -21,40 +49,51 @@
       align-items: center;
       justify-content: center;
       z-index: 1000;
-      font-size: 1.2rem;
+      flex-direction: column;
+      text-align: center;
     }
-    #map {
-      height: 100%;
-      width: 100%;
-      display: none;
-    }
+
     #confirmationModal {
       display: none;
       position: fixed;
-      z-index: 1001;
+      z-index: 2000;
       left: 0;
       top: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0,0,0,0.5);
+      background-color: rgba(0,0,0,0.6);
     }
+
     #modalContent {
       background-color: #fff;
-      margin: 20% auto;
+      margin: 30% auto;
       padding: 20px;
       width: 90%;
       max-width: 400px;
-      border-radius: 8px;
+      border-radius: 10px;
       text-align: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
+
     #modalContent button {
       padding: 8px 12px;
-      margin: 0 10px;
+      margin: 10px;
     }
   </style>
 </head>
 <body>
-  <div id="loading">Buscando sua localização. Aguarde...</div>
+  <div id="loading">
+    <img src="https://i.gifer.com/ZZ5H.gif" alt="Carregando..." width="80" />
+    <p style="font-size: 1.5rem; font-weight: bold; margin-top: 20px;">
+      Buscando sua localização. Aguarde...
+    </p>
+  </div>
+
+  <div id="search-box">
+    <input type="text" id="addressInput" placeholder="Digite um endereço" />
+    <button onclick="geocodeAddress()">Buscar</button>
+  </div>
+
   <div id="map"></div>
 
   <div id="confirmationModal">
@@ -70,68 +109,92 @@
     let pendingAddress = "", pendingLink = "";
 
     function initMap() {
-      geocoder = new google.maps.Geocoder();
-
-      // Tenta obter a localização atual
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((position) => {
-          const userLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-
-          showMap(userLocation);
-        }, () => {
-          // Se falhar, mostra o mapa com uma localização padrão
-          showMap({ lat: -23.5505, lng: -46.6333 });
-        });
-      } else {
-        showMap({ lat: -23.5505, lng: -46.6333 });
-      }
-    }
-
-    function showMap(center) {
-      document.getElementById("loading").style.display = "none";
-      document.getElementById("map").style.display = "block";
+      const defaultLocation = { lat: -23.5505, lng: -46.6333 };
 
       map = new google.maps.Map(document.getElementById("map"), {
-        center: center,
-        zoom: 20,
-        mapTypeId: 'satellite'
+        center: defaultLocation,
+        zoom: 18,
+        mapTypeId: 'satellite',
       });
 
-      marker = new google.maps.Marker({
-        position: center,
-        map: map
-      });
+      geocoder = new google.maps.Geocoder();
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const currentLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+            map.setCenter(currentLocation);
+            map.setZoom(20);
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("map").style.display = "block";
+          },
+          () => {
+            alert("Não foi possível acessar sua localização.");
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("map").style.display = "block";
+          }
+        );
+      } else {
+        alert("Seu navegador não suporta geolocalização.");
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("map").style.display = "block";
+      }
 
       map.addListener("click", (e) => {
         const lat = e.latLng.lat();
         const lng = e.latLng.lng();
         const clickedLocation = { lat, lng };
 
-        if (marker) marker.setMap(null);
-        marker = new google.maps.Marker({ position: clickedLocation, map: map });
+        setMarker(clickedLocation);
 
         geocoder.geocode({ location: clickedLocation }, (results, status) => {
           if (status === "OK" && results[0]) {
             const address = results[0].formatted_address;
-            const link = `https://www.google.com/maps?q=${lat},${lng}`;
-
+            const mapsLink = `https://www.google.com/maps?q=${lat},${lng}`;
             pendingAddress = address;
-            pendingLink = link;
+            pendingLink = mapsLink;
 
-            const msg = `
+            const text = `
               <strong>Endereço:</strong><br>${address}<br>
               <strong>Coordenadas:</strong><br>${lat.toFixed(6)}, ${lng.toFixed(6)}<br><br>
               Deseja continuar para o formulário com essas informações?
             `;
-            showModal(msg);
+            showModal(text);
           } else {
             alert("Não foi possível obter o endereço.");
           }
         });
       });
+    }
+
+    function geocodeAddress() {
+      const address = document.getElementById("addressInput").value;
+      if (!address) return;
+
+      geocoder.geocode({ address }, (results, status) => {
+        if (status === "OK" && results[0]) {
+          const location = results[0].geometry.location;
+          map.setCenter(location);
+          map.setZoom(20);
+          setMarker({ lat: location.lat(), lng: location.lng() });
+        } else {
+          alert("Endereço não encontrado.");
+        }
+      });
+    }
+
+    function setMarker(location) {
+      if (marker) marker.setMap(null);
+      marker = new google.maps.Marker({ position: location, map: map });
+    }
+
+    function redirectToForm(address, link) {
+      const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSdDeJzlacQs4YQLyGtvl-3RZk7YCuabs3AK59b6po18yD2eNQ/viewform";
+      const url = `${formUrl}?entry.685560023=${encodeURIComponent(address)}&entry.1482294369=${encodeURIComponent(link)}`;
+      window.open(url, "_blank");
     }
 
     function showModal(text) {
@@ -145,16 +208,15 @@
 
     document.getElementById("confirmBtn").onclick = function () {
       closeModal();
-      const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSdDeJzlacQs4YQLyGtvl-3RZk7YCuabs3AK59b6po18yD2eNQ/viewform";
-      const url = `${formUrl}?entry.685560023=${encodeURIComponent(pendingAddress)}&entry.1482294369=${encodeURIComponent(pendingLink)}`;
-      window.open(url, "_blank");
+      redirectToForm(pendingAddress, pendingLink);
     };
 
     window.initMap = initMap;
   </script>
 
+  <!-- Google Maps API -->
   <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB_a0uSA8vj0JNKyci4RIrc12z0lNU_f4w&callback=initMap"
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB_a0uSA8vj0JNKyci4RIrc12z0lNU_f4w&libraries=places&callback=initMap"
     async defer>
   </script>
 </body>
