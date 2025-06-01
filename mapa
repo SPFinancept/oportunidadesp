@@ -266,7 +266,7 @@
 
   <!-- Google Maps API -->
   <script
-    src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&callback=initMap"
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB_a0uSA8vj0JNKyci4RIrc12z0lNU_f4w&libraries=places&callback=initMap"
     async defer>
   </script>
 </body>
