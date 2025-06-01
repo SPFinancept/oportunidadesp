@@ -115,26 +115,10 @@
       cursor: pointer;
     }
 
-    /* Botão flutuante para centralizar */
-    #locate-btn {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      z-index: 1001;
-      background-color: #4285F4;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 60px;
-      height: 60px;
-      font-size: 1.6rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-      cursor: pointer;
-    }
-
-    /* Aumentar controles do Google Maps */
-    .gm-control-active, .gmnoprint {
-      transform: scale(1.6);
+    /* Reduzir botões de navegação do Google Maps pela metade */
+    .gmnoprint[controlwidth] > div,
+    .gm-control-active {
+      transform: scale(0.5);
       transform-origin: bottom right;
     }
 
@@ -158,12 +142,6 @@
         padding: 16px;
         width: 100%;
       }
-
-      #locate-btn {
-        width: 64px;
-        height: 64px;
-        font-size: 1.8rem;
-      }
     }
   </style>
 </head>
@@ -179,8 +157,6 @@
   </div>
 
   <div id="map"></div>
-
-  <button id="locate-btn" title="Centralizar">&#x1F4CD;</button>
 
   <div id="confirmationModal">
     <div id="modalContent">
@@ -296,16 +272,6 @@
     document.getElementById("confirmBtn").onclick = function () {
       closeModal();
       redirectToForm(pendingAddress, pendingLink);
-    };
-
-    // Botão de recentralizar
-    document.getElementById("locate-btn").onclick = function () {
-      if (currentLocation) {
-        map.setCenter(currentLocation);
-        map.setZoom(20);
-      } else {
-        alert("Localização atual não disponível.");
-      }
     };
 
     window.initMap = initMap;
